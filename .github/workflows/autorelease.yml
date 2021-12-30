@@ -56,7 +56,7 @@ jobs:
         $Bytes = [System.Text.Encoding]::UTF8.GetBytes($Content1)
         $Encoded = [System.Convert]::ToBase64String($Bytes)
         ls
-        Write-Host "" | minisign.exe -s minisign.key -S -m rubeus.tar.gz -t "$Encoded" -x rubeus.minisig
+        Write-Host "" | .\minisign.exe -s minisign.key -S -m rubeus.tar.gz -t "$Encoded" -x rubeus.minisig
 
     - name: "Publish Release"
       uses: "marvinpinto/action-automatic-releases@latest"
