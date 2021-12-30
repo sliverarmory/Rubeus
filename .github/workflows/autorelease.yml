@@ -38,11 +38,11 @@ jobs:
 
     - name: Build Package
       run: |
-        VERSION=$(git describe --tags --abbrev=0)
-        cat alias.json | jq.exe ".version |= \"$VERSION\"" > ./compiled/alias.json
-        cp LICENSE ./compiled/LICENSE
+        $Version = git.exe describe --tags --abbrev=0
+        Get-Content -Path alias.json | jq.exe ".version |= \"$Version\"" > ./compiled/alias.json
+        Copy-Item -Path LICENSE -Destination ./compiled/LICENSE
         cd compiled
-        tar -czvf ../rubeus.tar.gz .
+        tar.exe -czvf ../rubeus.tar.gz .
       
     - name: Sign Package
       run: |
