@@ -25,6 +25,7 @@ jobs:
         New-Item -Path "." -Name "minisign" -ItemType "directory"
         Expand-Archive -LiteralPath 'minisign-windows-amd64.zip' -DestinationPath 'minisign'
         Remove-Item -Path minisign-windows-amd64.zip
+        ls
 
     - name: Check out code
       uses: actions/checkout@v2
@@ -35,6 +36,7 @@ jobs:
     - name: MSBuild
       run: |
         msbuild.exe Rubeus.sln /p:Configuration=Release /p:Platform="Any CPU" /p:OutputPath=compiled/
+        ls
 
     - name: Build Package
       run: |
@@ -42,6 +44,7 @@ jobs:
         Get-Content -Path alias.json | jq.exe ".version |= \"$Version\"" > ./compiled/alias.json
         Copy-Item -Path LICENSE -Destination ./compiled/LICENSE
         cd compiled
+        ls
         tar.exe -czvf ../rubeus.tar.gz .
       
     - name: Sign Package
