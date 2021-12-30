@@ -28,8 +28,9 @@ jobs:
         [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
         Invoke-WebRequest -Uri https://github.com/stedolan/jq/releases/download/jq-1.6/jq-win64.exe -OutFile jq.exe
         Invoke-WebRequest -Uri https://github.com/aead/minisign/releases/download/v0.2.0/minisign-windows-amd64.zip -OutFile minisign-windows-amd64.zip
-        New-Item -Path "." -Name "minisign" -ItemType "directory"
-        Expand-Archive -LiteralPath 'minisign-windows-amd64.zip' -DestinationPath 'minisign'
+        New-Item -Path "." -Name 'minisign-archive' -ItemType "directory"
+        Expand-Archive -LiteralPath 'minisign-windows-amd64.zip' -DestinationPath 'minisign-archive'
+        Copy-Item -Path 'minisign-archive\minisign.exe' -DestinationPath '.'
         Remove-Item -Path minisign-windows-amd64.zip
         ls
 
