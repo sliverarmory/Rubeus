@@ -24,6 +24,9 @@ jobs:
         Invoke-WebRequest -Uri https://github.com/aead/minisign/releases/download/v0.2.0/minisign-windows-amd64.zip -OutFile minisign-windows-amd64.zip
         New-Item -Path "." -Name "minisign" -ItemType "directory"
         Expand-Archive -LiteralPath 'minisign-windows-amd64.zip' -DestinationPath 'minisign'
+        ls
+        cd minisign
+        ls
 
     - name: Check out code
       uses: actions/checkout@v2
