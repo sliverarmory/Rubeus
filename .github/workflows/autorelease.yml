@@ -17,6 +17,14 @@ jobs:
     - name: Add msbuild to PATH
       uses: microsoft/setup-msbuild@v1.1
   
+    - name: Download Tools
+      run: |
+        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+        Invoke-WebRequest -Uri https://github.com/stedolan/jq/releases/download/jq-1.6/jq-win64.exe -OutFile jq.exe
+        Invoke-WebRequest -Uri https://github.com/aead/minisign/releases/download/v0.2.0/minisign-windows-amd64.zip -OutFile minisign-windows-amd64.zip
+        New-Item -Path "." -Name "minisign" -ItemType "directory"
+        Expand-Archive -LiteralPath 'minisign-windows-amd64.zip' -DestinationPath 'minisign'
+
     - name: Check out code
       uses: actions/checkout@v2
 
@@ -24,4 +32,6 @@ jobs:
       run: git fetch --prune --unshallow --tags -f
 
     - name: MSBuild
-      run: msbuild.exe Rubeus.sln /p:Configuration=Release /p:Platform="Any CPU"
+      run: |
+        msbuild.exe Rubeus.sln /p:Configuration=Release /p:Platform="Any CPU" /p:OutputPath=compiled/
+
