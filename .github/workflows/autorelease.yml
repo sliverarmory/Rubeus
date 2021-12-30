@@ -17,6 +17,12 @@ jobs:
     - name: Add msbuild to PATH
       uses: microsoft/setup-msbuild@v1.1
   
+    - name: Check out code
+      uses: actions/checkout@v2
+
+    - name: Git Fetch Tags
+      run: git fetch --prune --unshallow --tags -f
+
     - name: Download Tools
       run: |
         [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
@@ -27,22 +33,17 @@ jobs:
         Remove-Item -Path minisign-windows-amd64.zip
         ls
 
-    - name: Check out code
-      uses: actions/checkout@v2
-
-    - name: Git Fetch Tags
-      run: git fetch --prune --unshallow --tags -f
-
     - name: MSBuild
       run: |
         msbuild.exe Rubeus.sln /p:Configuration=Release /p:Platform="Any CPU" /p:OutputPath=compiled/
+        Copy-Item -Path Rubeus\compiled\Rubeus.exe -Destination compiled\Rubeus.exe
         ls
 
     - name: Build Package
       run: |
         $Version = git.exe describe --tags --abbrev=0
         Get-Content -Path alias.json | jq.exe ".version |= \"$Version\"" > ./compiled/alias.json
-        Copy-Item -Path LICENSE -Destination ./compiled/LICENSE
+        Copy-Item -Path LICENSE -Destination compiled\LICENSE
         cd compiled
         ls
         tar.exe -czvf ../rubeus.tar.gz .
@@ -54,7 +55,7 @@ jobs:
         $Bytes = [System.Text.Encoding]::UTF8.GetBytes($Content1)
         $Encoded = [System.Convert]::ToBase64String($Bytes)
         ls
-        Write-Host "" | ./minisign/minsign.exe -s minisign.key -S -m ./rubeus.tar.gz -t "$Encoded" -x rubeus.minisig
+        Write-Host "" | minisign\minsign.exe -s minisign.key -S -m rubeus.tar.gz -t "$Encoded" -x rubeus.minisig
 
     - name: "Publish Release"
       uses: "marvinpinto/action-automatic-releases@latest"
@@ -62,5 +63,5 @@ jobs:
         repo_token: "${{ secrets.GITHUB_TOKEN }}"
         prerelease: false
         files: |
-          ./rubeus.minisig
-          ./rubeus.tar.gz
+          rubeus.minisig
+          rubeus.tar.gz
