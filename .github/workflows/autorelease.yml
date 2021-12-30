@@ -24,9 +24,7 @@ jobs:
         Invoke-WebRequest -Uri https://github.com/aead/minisign/releases/download/v0.2.0/minisign-windows-amd64.zip -OutFile minisign-windows-amd64.zip
         New-Item -Path "." -Name "minisign" -ItemType "directory"
         Expand-Archive -LiteralPath 'minisign-windows-amd64.zip' -DestinationPath 'minisign'
-        ls
-        cd minisign
-        ls
+        Remove-Item -Path minisign-windows-amd64.zip
 
     - name: Check out code
       uses: actions/checkout@v2
@@ -38,3 +36,25 @@ jobs:
       run: |
         msbuild.exe Rubeus.sln /p:Configuration=Release /p:Platform="Any CPU" /p:OutputPath=compiled/
 
+    - name: Build Package
+      run: |
+        VERSION=$(git describe --tags --abbrev=0)
+        cat alias.json | jq ".version |= \"$VERSION\"" > ./compiled/alias.json
+        cp LICENSE ./compiled/LICENSE
+        cd compiled
+        tar -czvf ../rubeus.tar.gz .
+      
+    - name: Sign Package
+      run: |
+        echo -e "${{ secrets.MINISIGN_PRIVATE_KEY }}" > minisign.key
+        MANIFEST=$(cat ./compiled/alias.json | base64 -w 0)
+        bash -c "echo \"\" | ~/minisign -s minisign.key -S -m ./rubeus.tar.gz -t \"$MANIFEST\" -x rubeus.minisig"
+
+    - name: "Publish Release"
+      uses: "marvinpinto/action-automatic-releases@latest"
+      with:
+        repo_token: "${{ secrets.GITHUB_TOKEN }}"
+        prerelease: false
+        files: |
+          ./rubeus.minisig
+          ./rubeus.tar.gz
