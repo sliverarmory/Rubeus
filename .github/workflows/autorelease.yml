@@ -27,18 +27,12 @@ jobs:
       run: |
         [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
         Invoke-WebRequest -Uri https://github.com/stedolan/jq/releases/download/jq-1.6/jq-win64.exe -OutFile jq.exe
-        Invoke-WebRequest -Uri https://github.com/aead/minisign/releases/download/v0.2.0/minisign-windows-amd64.zip -OutFile minisign-windows-amd64.zip
-        New-Item -Path "." -Name 'minisign-archive' -ItemType "directory"
-        Expand-Archive -LiteralPath 'minisign-windows-amd64.zip' -DestinationPath 'minisign-archive'
-        Copy-Item -Path 'minisign-archive\minisign.exe' -Destination '.'
-        Remove-Item -Path minisign-windows-amd64.zip
-        ls
+        Invoke-WebRequest -Uri https://github.com/moloch--/minisign/releases/download/v0.2.1/minisign.exe -OutFile minisign.exe
 
     - name: MSBuild
       run: |
         msbuild.exe Rubeus.sln /p:Configuration=Release /p:Platform="Any CPU" /p:OutputPath=compiled/
         Copy-Item -Path Rubeus\compiled\Rubeus.exe -Destination compiled\Rubeus.exe
-        ls
 
     - name: Build Package
       run: |
@@ -47,7 +41,7 @@ jobs:
         Copy-Item -Path LICENSE -Destination compiled\LICENSE
         cd compiled
         ls
-        tar.exe -czvf ../rubeus.tar.gz .
+        tar.exe -czvf ..\rubeus.tar.gz .
       
     - name: Sign Package
       run: |
@@ -55,8 +49,7 @@ jobs:
         $Content1 = Get-Content -Path minisign.key
         $Bytes = [System.Text.Encoding]::UTF8.GetBytes($Content1)
         $Encoded = [System.Convert]::ToBase64String($Bytes)
-        ls
-        Write-Output "" | .\minisign.exe -s minisign.key -S -m rubeus.tar.gz -t "$Encoded" -x rubeus.minisig
+        .\minisign.exe -s minisign.key -S -m rubeus.tar.gz -t "$Encoded" -x rubeus.minisig
 
     - name: "Publish Release"
       uses: "marvinpinto/action-automatic-releases@latest"
