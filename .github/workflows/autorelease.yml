@@ -35,9 +35,11 @@ jobs:
         Copy-Item -Path Rubeus\compiled\Rubeus.exe -Destination compiled\Rubeus.exe
 
     - name: Build Package
+      # Powershell is utter fucking trash.
       run: |
         $Version = git.exe describe --tags --abbrev=0
-        Get-Content -Path alias.json | .\jq.exe '.version |= "$Version"' > ./compiled/alias.json
+        $Version = "`"$Version`""
+        Get-Content -Path alias.json | .\jq.exe ".version |= `"$Version`"" > ./compiled/alias.json
         Copy-Item -Path LICENSE -Destination compiled\LICENSE
         cd compiled
         ls
