@@ -48,7 +48,7 @@ jobs:
     - name: Sign Package
       run: |
         Write-Output "${{ secrets.MINISIGN_PRIVATE_KEY }}" > minisign.key
-        $Content1 = Get-Content -Path minisign.key
+        $Content1 = Get-Content -Path alias.json
         $Bytes = [System.Text.Encoding]::UTF8.GetBytes($Content1)
         $Encoded = [System.Convert]::ToBase64String($Bytes)
         .\minisign.exe -s minisign.key -S -m rubeus.tar.gz -t "$Encoded" -x rubeus.minisig
