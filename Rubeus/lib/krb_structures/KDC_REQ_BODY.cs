@@ -76,7 +76,7 @@ namespace Rubeus
                         cname = new PrincipalName(s.Sub[0]);
                         break;
                     case 2:
-                        realm = Encoding.ASCII.GetString(s.Sub[0].GetOctetString());
+                        realm = Encoding.UTF8.GetString(s.Sub[0].GetOctetString());
                         break;
                     case 3:
                         // optional
@@ -152,7 +152,7 @@ namespace Rubeus
             // realm                   [2] Realm
             //                          --Server's realm
             //                          -- Also client's in AS-REQ --
-            AsnElt realmAsn = AsnElt.MakeString(AsnElt.IA5String, realm);
+            AsnElt realmAsn = AsnElt.MakeString(AsnElt.UTF8String, realm);
             realmAsn = AsnElt.MakeImplicit(AsnElt.UNIVERSAL, AsnElt.GeneralString, realmAsn);
             AsnElt realmSeq = AsnElt.Make(AsnElt.SEQUENCE, new[] { realmAsn });
             realmSeq = AsnElt.MakeImplicit(AsnElt.CONTEXT, 2, realmSeq);

@@ -146,7 +146,7 @@ namespace Rubeus
 
                 // 15 minutes in the future like genuine requests
                 DateTime till = DateTime.Now;
-                till = till.AddMinutes(15);
+                till = till.AddMinutes(15).ToUniversalTime();
                 s4u2proxyReq.req_body.till = till;
 
                 // extra etypes
@@ -154,11 +154,11 @@ namespace Rubeus
                 s4u2proxyReq.req_body.etypes.Add(Interop.KERB_ETYPE.old_exp);
 
                 // get hostname and hostname of SPN
-                string hostName = Dns.GetHostName().ToUpper();
+                string hostName = Dns.GetHostName().ToUpperInvariant();
                 string targetHostName;
                 if (parts.Length > 1)
                 {
-                    targetHostName = parts[1].Substring(0, parts[1].IndexOf('.')).ToUpper();
+                    targetHostName = parts[1].Split('.')[0].ToUpperInvariant();
                 }
                 else
                 {
@@ -189,7 +189,7 @@ namespace Rubeus
                 AsnElt req_Body_ASNSeq = AsnElt.Make(AsnElt.SEQUENCE, new[] { req_Body_ASN });
                 req_Body_ASNSeq = AsnElt.MakeImplicit(AsnElt.CONTEXT, 4, req_Body_ASNSeq);
                 byte[] req_Body_Bytes = req_Body_ASNSeq.CopyValue();
-                cksum_Bytes = Crypto.KerberosChecksum(clientKey, req_Body_Bytes, Interop.KERB_CHECKSUM_ALGORITHM.KERB_CHECKSUM_RSA_MD5);
+                cksum_Bytes = Crypto.KerberosChecksum(clientKey, req_Body_Bytes, Interop.KERB_CHECKSUM_ALGORITHM.KERB_CHECKSUM_RSA_MD5, Interop.KRB_KEY_USAGE_TGS_REQ_CHECKSUM);
             }
 
             // moved to end so we can have the checksum in the authenticator

